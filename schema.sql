@@ -2,7 +2,8 @@ CREATE TABLE users (
     id INT PRIMARY KEY AUTO_INCREMENT,
     first_name VARCHAR(100), -- nullable, only for client
     last_name VARCHAR(100), -- nullable, only for client
-    mobile_number VARCHAR(20), -- nullable, only for client
+    mobile_number VARCHAR(20) UNIQUE, -- nullable, only for client
+    password_hash VARCHAR(255) NOT NULL,
 
     role ENUM('admin', 'client') NOT NULL DEFAULT 'client',
 

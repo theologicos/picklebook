@@ -15,7 +15,7 @@ return new class extends Migration {
             $table->dateTime('effective_datetime');
             $table->foreignId('court_id')->constrained('courts')->cascadeOnDelete();
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
-            $table->timestamps();
+            $table->timestamp('created_at');
         });
     }
 
