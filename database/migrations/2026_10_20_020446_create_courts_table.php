@@ -12,7 +12,7 @@ return new class extends Migration {
     {
         Schema::create('courts', function (Blueprint $table) {
             $table->id();
-            $table->string('message', 255);
+            $table->string('name', 255);
             $table->timestamps();
         });
     }
