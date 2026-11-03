@@ -123,6 +123,22 @@ class Appointment extends Model
         return $query->where('status', '!=', AppointmentStatus::Cancelled->value);
     }
 
+    /** The customer sent a GCash reference and the owner still has to check it. */
+    public function scopeAwaitingVerification(Builder $query): Builder
+    {
+        return $query
+            ->where('status', AppointmentStatus::Pending->value)
+            ->where('payment_status', PaymentStatus::ForVerification->value);
+    }
+
+    /** Money actually received: confirmed bookings that are paid. */
+    public function scopeCollected(Builder $query): Builder
+    {
+        return $query
+            ->where('status', AppointmentStatus::Confirmed->value)
+            ->where('payment_status', PaymentStatus::Paid->value);
+    }
+
     /** Bookings that have not finished yet. */
     public function scopeUpcoming(Builder $query): Builder
     {

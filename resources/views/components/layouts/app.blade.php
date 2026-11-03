@@ -5,8 +5,11 @@
     $pageDescription = $description ?? __('Book a pickleball court online. Pay with GCash and get confirmed on Messenger.');
 
     // Links shown in the header, left to right.
-    $links = [
-    ];
+    $links = [];
+
+    if (auth()->user()?->isAdmin()) {
+        $links[] = ['label' => __('Admin'), 'href' => route('admin.dashboard'), 'active' => false];
+    }
 @endphp
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
