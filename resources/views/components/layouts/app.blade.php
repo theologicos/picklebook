@@ -53,6 +53,7 @@
                     </form>
                 @else
                     <a href="{{ route('login') }}" class="rounded-lg px-3 py-2 text-sm font-medium hover:bg-white/10">{{ __('Log in') }}</a>
+                    <a href="{{ route('register') }}" class="btn btn-ball btn-sm md:ml-1">{{ __('Sign up') }}</a>
                 @endauth
             </nav>
         </div>
