@@ -32,4 +32,9 @@ class AdminMiddlewareTest extends TestCase
             ->get('/_admin-probe')
             ->assertForbidden();
     }
+
+    public function test_guests_are_sent_to_log_in(): void
+    {
+        $this->get('/_admin-probe')->assertRedirect(route('login'));
+    }
 }

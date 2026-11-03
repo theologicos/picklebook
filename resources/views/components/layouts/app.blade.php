@@ -44,6 +44,16 @@
                            'bg-white/10' => $link['active'],
                        ])>{{ $link['label'] }}</a>
                 @endforeach
+
+                @auth
+                    <span class="px-3 py-2 text-sm text-brand-200 md:ml-2">{{ auth()->user()->first_name ?? auth()->user()->mobile_number }}</span>
+                    <form method="POST" action="{{ route('logout') }}">
+                        @csrf
+                        <button type="submit" class="w-full rounded-lg px-3 py-2 text-left text-sm font-medium hover:bg-white/10">{{ __('Log out') }}</button>
+                    </form>
+                @else
+                    <a href="{{ route('login') }}" class="rounded-lg px-3 py-2 text-sm font-medium hover:bg-white/10">{{ __('Log in') }}</a>
+                @endauth
             </nav>
         </div>
     </header>
