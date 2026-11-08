@@ -5,6 +5,8 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
 use Illuminate\Support\Facades\Route;
 
+use App\Http\Controllers\Admin\CourtController;
+
 Route::get('/', function () {
     return view('welcome');
 })->name('home');
@@ -23,3 +25,6 @@ Route::post('/logout', [LoginController::class, 'destroy'])->middleware('auth')-
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 });
+
+Route::resource('courts', CourtController::class)->except(['show', 'destroy']);
+Route::patch('courts/{court}/toggle', [CourtController::class, 'toggle'])->name('courts.toggle');
