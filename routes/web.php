@@ -6,6 +6,7 @@ use App\Http\Controllers\Auth\RegisterController;
 use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\Admin\CourtController;
+use App\Http\Controllers\CourtScheduleController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -28,3 +29,5 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
 
 Route::resource('courts', CourtController::class)->except(['show', 'destroy']);
 Route::patch('courts/{court}/toggle', [CourtController::class, 'toggle'])->name('courts.toggle');
+
+Route::get('/book', [CourtScheduleController::class, 'index'])->name('book');
