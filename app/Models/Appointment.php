@@ -208,4 +208,9 @@ class Appointment extends Model
 
         return now()->lt($cutoff);
     }
+
+    public function getRouteKeyName(): string
+    {
+        return 'reference_code';
+    }
 }
