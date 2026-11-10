@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\CourtController;
 use App\Http\Controllers\CourtScheduleController;
 
+use App\Http\Controllers\BookingController;
+
 Route::get('/', function () {
     return view('welcome');
 })->name('home');
@@ -31,3 +33,12 @@ Route::resource('courts', CourtController::class)->except(['show', 'destroy']);
 Route::patch('courts/{court}/toggle', [CourtController::class, 'toggle'])->name('courts.toggle');
 
 Route::get('/book', [CourtScheduleController::class, 'index'])->name('book');
+
+Route::middleware('auth')->group(function () {
+    Route::get('/book/new', [BookingController::class, 'create'])->name('bookings.create');
+    Route::get('/bookings', [BookingController::class, 'index'])->name('bookings.index');
+    Route::post('/bookings', [BookingController::class, 'store'])->name('bookings.store');
+    Route::get('/bookings/{appointment}', [BookingController::class, 'show'])->name('bookings.show');
+    Route::post('/bookings/{appointment}/payment', [BookingController::class, 'submitPayment'])->name('bookings.payment');
+    Route::post('/bookings/{appointment}/cancel', [BookingController::class, 'cancel'])->name('bookings.cancel');
+});
