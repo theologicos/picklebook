@@ -26,6 +26,7 @@ class DashboardController extends Controller
             'revenue_month' => (int) Appointment::query()->collected()
                 ->whereBetween('effective_datetime', [$today->copy()->startOfMonth(), $today->copy()->endOfMonth()])
                 ->sum('total_amount'),
+            'to_verify' => Appointment::query()->awaitingVerification()->count()
         ];
 
         return view('admin.dashboard', compact('stats'));
