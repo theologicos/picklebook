@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\CourtController;
 use App\Http\Controllers\CourtScheduleController;
 
 use App\Http\Controllers\BookingController;
+use App\Http\Controllers\Admin\BookingController as AdminBookingController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -42,3 +43,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/bookings/{appointment}/payment', [BookingController::class, 'submitPayment'])->name('bookings.payment');
     Route::post('/bookings/{appointment}/cancel', [BookingController::class, 'cancel'])->name('bookings.cancel');
 });
+
+Route::get('bookings', [AdminBookingController::class, 'index'])->name('bookings.index');
+Route::post('bookings/{appointment}/confirm', [AdminBookingController::class, 'confirm'])->name('bookings.confirm');
+Route::post('bookings/{appointment}/cancel', [AdminBookingController::class, 'cancel'])->name('bookings.cancel');
