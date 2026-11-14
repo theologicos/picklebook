@@ -107,4 +107,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(Appointment::class);
     }
+
+    public function openPlayEntries(): HasMany
+    {
+        return $this->hasMany(OpenPlayEntry::class);
+    }
 }
