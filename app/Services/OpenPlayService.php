@@ -323,4 +323,61 @@ class OpenPlayService
     {
         return $session->games()->inProgress()->with('entries.user')->first();
     }
+
+        // Start a game with the next four waiting players.
+    public function startNextGame(OpenPlaySession $session): OpenPlayGame
+    {
+        return DB::transaction(function () use ($session) {
+            $locked = OpenPlaySession::query()->whereKey($session->getKey())->lockForUpdate()->firstOrFail();
+
+            if ($locked->status !== OpenPlaySessionStatus::Live) {
+                throw new OpenPlayException(__('Start the session first.'));
+            }
+
+            if ($locked->games()->inProgress()->exists()) {
+                throw new OpenPlayException(__('A game is already on the court. Finish it first.'));
+            }
+
+            $next = $locked->entries()->waiting()->queueOrder()->limit(self::PLAYERS_PER_GAME)->get();
+
+            if ($next->count() < self::PLAYERS_PER_GAME) {
+                throw new OpenPlayException(__('We need :needed players in the queue, but only :waiting are waiting.', [
+                    'needed' => self::PLAYERS_PER_GAME,
+                    'waiting' => $next->count(),
+                ]));
+            }
+
+            $game = $locked->games()->create(['started_at' => now()]);
+            $game->entries()->attach($next->modelKeys());
+
+            OpenPlayEntry::query()
+                ->whereIn('id', $next->modelKeys())
+                ->update(['status' => OpenPlayEntryStatus::Playing->value, 'queued_at' => null]);
+
+            return $game->load('entries.user');
+        });
+    }
+
+    // Finish the game and return its players to the back of the queue.
+    public function finishGame(OpenPlayGame $game): OpenPlayGame
+    {
+        if ($game->isFinished()) {
+            throw new OpenPlayException(__('This game is already finished.'));
+        }
+
+        DB::transaction(function () use ($game) {
+            $game->update(['ended_at' => now()]);
+
+            OpenPlayEntry::query()
+                ->whereIn('id', $game->entries()->pluck('open_play_entries.id')->all())
+                ->where('status', OpenPlayEntryStatus::Playing->value)
+                ->update([
+                    'status' => OpenPlayEntryStatus::Waiting->value,
+                    'queued_at' => now(),
+                    'games_played' => DB::raw('games_played + 1'),
+                ]);
+        });
+
+        return $game;
+    }
 }
