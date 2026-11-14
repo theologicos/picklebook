@@ -157,4 +157,145 @@ class OpenPlayService
 
         return $sessions->count();
     }
+
+    // Register a player and reserve their spot.
+    public function join(OpenPlaySession $session, User $user, PaymentMethod $method): OpenPlayEntry
+    {
+        if ($method === PaymentMethod::Cash && ! $this->business->allowPayAtCourt()) {
+            throw new OpenPlayException(__('Paying at the court is not available. Please pay with GCash.'));
+        }
+
+        if ($method === PaymentMethod::Gcash && ! $this->business->hasGcash()) {
+            throw new OpenPlayException(__('GCash payments are not set up yet. Please message us to join.'));
+        }
+
+        return DB::transaction(function () use ($session, $user, $method) {
+            // Lock the session row so two players can't take the last spot together.
+            $locked = OpenPlaySession::query()->whereKey($session->getKey())->lockForUpdate()->firstOrFail();
+
+            if (! $locked->isJoinable()) {
+                throw new OpenPlayException(__('This open play is no longer taking players.'));
+            }
+
+            $entry = OpenPlayEntry::query()->firstOrNew([
+                'open_play_session_id' => $locked->getKey(),
+                'user_id' => $user->getKey(),
+            ]);
+
+            if ($entry->exists && $entry->status !== OpenPlayEntryStatus::Left) {
+                throw new OpenPlayException(__('You already joined this session.'));
+            }
+
+            if ($locked->entries()->active()->count() >= $locked->max_players) {
+                throw new OpenPlayException(__('Sorry, this session is full.'));
+            }
+
+            // A player who left earlier simply re-uses their old row.
+            $entry->fill([
+                'status' => OpenPlayEntryStatus::Registered,
+                'payment_method' => $method,
+                'payment_status' => PaymentStatus::Unpaid,
+                'gcash_reference' => null,
+                'amount' => $locked->fee_per_player,
+                'queued_at' => null,
+            ])->save();
+
+            return $entry;
+        });
+    }
+
+    // Submit a GCash reference number for verification.
+    public function submitGcashReference(OpenPlayEntry $entry, string $reference): OpenPlayEntry
+    {
+        $reference = preg_replace('/\D+/', '', $reference) ?? '';
+
+        if ($entry->status === OpenPlayEntryStatus::Left
+            || $entry->payment_method !== PaymentMethod::Gcash
+            || $entry->payment_status === PaymentStatus::Paid) {
+            throw new OpenPlayException(__('This sign-up is not waiting for a GCash payment.'));
+        }
+
+        if (strlen($reference) < 10 || strlen($reference) > 20) {
+            throw new OpenPlayException(__('Enter the reference number from your GCash receipt (10 to 20 digits).'));
+        }
+
+        try {
+            $entry->update([
+                'gcash_reference' => $reference,
+                'payment_status' => PaymentStatus::ForVerification,
+            ]);
+        } catch (UniqueConstraintViolationException) {
+            throw new OpenPlayException(__('That GCash reference number was already used.'));
+        }
+
+        return $entry;
+    }
+
+    // Temporarily remove a player from the queue.
+    public function stepOut(OpenPlayEntry $entry): OpenPlayEntry
+    {
+        if ($entry->status !== OpenPlayEntryStatus::Waiting) {
+            throw new OpenPlayException(__('You are not in the queue right now.'));
+        }
+
+        $entry->update(['status' => OpenPlayEntryStatus::Registered, 'queued_at' => null]);
+
+        return $entry;
+    }
+
+    // Return a paid player to the back of the queue.
+    public function enterQueue(OpenPlayEntry $entry): OpenPlayEntry
+    {
+        if ($entry->session->status !== OpenPlaySessionStatus::Live) {
+            throw new OpenPlayException(__('The queue opens when the session starts.'));
+        }
+
+        if ($entry->status !== OpenPlayEntryStatus::Registered) {
+            throw new OpenPlayException(__('You are already in the queue or have left this session.'));
+        }
+
+        if (! $entry->isPaid()) {
+            throw new OpenPlayException(__('Please check in with the staff first.'));
+        }
+
+        $entry->update(['status' => OpenPlayEntryStatus::Waiting, 'queued_at' => now()]);
+
+        return $entry;
+    }
+
+    // Remove a player from the session completely.
+    public function leave(OpenPlayEntry $entry): OpenPlayEntry
+    {
+        if ($entry->status === OpenPlayEntryStatus::Left) {
+            throw new OpenPlayException(__('You already left this session.'));
+        }
+
+        if ($entry->status === OpenPlayEntryStatus::Playing) {
+            throw new OpenPlayException(__('Please finish your game first.'));
+        }
+
+        $entry->update(['status' => OpenPlayEntryStatus::Left, 'queued_at' => null]);
+
+        return $entry;
+    }
+
+    // Mark the player as paid and add them to the queue.
+    public function checkIn(OpenPlayEntry $entry): OpenPlayEntry
+    {
+        if ($entry->session->status !== OpenPlaySessionStatus::Live) {
+            throw new OpenPlayException(__('Start the session before checking players in.'));
+        }
+
+        if ($entry->status !== OpenPlayEntryStatus::Registered) {
+            throw new OpenPlayException(__('This player is already checked in or has left.'));
+        }
+
+        $entry->update([
+            'payment_status' => PaymentStatus::Paid,
+            'status' => OpenPlayEntryStatus::Waiting,
+            'queued_at' => now(),
+        ]);
+
+        return $entry;
+    }
 }
