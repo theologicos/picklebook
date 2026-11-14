@@ -298,4 +298,29 @@ class OpenPlayService
 
         return $entry;
     }
+
+    // Retrieve waiting players in queue order.
+    public function queue(OpenPlaySession $session): Collection
+    {
+        return $session->entries()->with('user')->waiting()->queueOrder()->get();
+    }
+
+    // Get the player's current position in the queue.
+    public function position(OpenPlayEntry $entry): ?int
+    {
+        if ($entry->status !== OpenPlayEntryStatus::Waiting) {
+            return null;
+        }
+
+        $ids = array_map('intval', $this->queue($entry->session)->modelKeys());
+        $index = array_search((int) $entry->getKey(), $ids, true);
+
+        return $index === false ? null : $index + 1;
+    }
+
+    // Retrieve the current game for a session.
+    public function currentGame(OpenPlaySession $session): ?OpenPlayGame
+    {
+        return $session->games()->inProgress()->with('entries.user')->first();
+    }
 }
