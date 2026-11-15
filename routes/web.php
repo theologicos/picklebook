@@ -11,6 +11,8 @@ use App\Http\Controllers\CourtScheduleController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\Admin\BookingController as AdminBookingController;
 
+use App\Http\Controllers\Admin\OpenPlayController as AdminOpenPlayController;
+
 Route::get('/', function () {
     return view('welcome');
 })->name('home');
@@ -47,3 +49,15 @@ Route::middleware('auth')->group(function () {
 Route::get('bookings', [AdminBookingController::class, 'index'])->name('bookings.index');
 Route::post('bookings/{appointment}/confirm', [AdminBookingController::class, 'confirm'])->name('bookings.confirm');
 Route::post('bookings/{appointment}/cancel', [AdminBookingController::class, 'cancel'])->name('bookings.cancel');
+
+Route::get('open-play', [AdminOpenPlayController::class, 'index'])->name('open-play.index');
+Route::get('open-play/create', [AdminOpenPlayController::class, 'create'])->name('open-play.create');
+Route::post('open-play', [AdminOpenPlayController::class, 'store'])->name('open-play.store');
+Route::get('open-play/{session}', [AdminOpenPlayController::class, 'show'])->name('open-play.show');
+Route::post('open-play/{session}/start', [AdminOpenPlayController::class, 'start'])->name('open-play.start');
+Route::post('open-play/{session}/close', [AdminOpenPlayController::class, 'close'])->name('open-play.close');
+Route::post('open-play/{session}/cancel', [AdminOpenPlayController::class, 'cancel'])->name('open-play.cancel');
+Route::post('open-play/{session}/games', [AdminOpenPlayController::class, 'startGame'])->name('open-play.games.start');
+Route::post('open-play/games/{game}/finish', [AdminOpenPlayController::class, 'finishGame'])->name('open-play.games.finish');
+Route::post('open-play/entries/{entry}/check-in', [AdminOpenPlayController::class, 'checkIn'])->name('open-play.entries.check-in');
+Route::post('open-play/entries/{entry}/remove', [AdminOpenPlayController::class, 'remove'])->name('open-play.entries.remove');
