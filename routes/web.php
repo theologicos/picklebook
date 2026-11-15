@@ -13,6 +13,8 @@ use App\Http\Controllers\Admin\BookingController as AdminBookingController;
 
 use App\Http\Controllers\Admin\OpenPlayController as AdminOpenPlayController;
 
+use App\Http\Controllers\OpenPlayController;
+
 Route::get('/', function () {
     return view('welcome');
 })->name('home');
@@ -61,3 +63,14 @@ Route::post('open-play/{session}/games', [AdminOpenPlayController::class, 'start
 Route::post('open-play/games/{game}/finish', [AdminOpenPlayController::class, 'finishGame'])->name('open-play.games.finish');
 Route::post('open-play/entries/{entry}/check-in', [AdminOpenPlayController::class, 'checkIn'])->name('open-play.entries.check-in');
 Route::post('open-play/entries/{entry}/remove', [AdminOpenPlayController::class, 'remove'])->name('open-play.entries.remove');
+
+Route::get('/open-play', [OpenPlayController::class, 'index'])->name('open-play.index');
+Route::get('/open-play/{session}', [OpenPlayController::class, 'show'])->name('open-play.show');
+
+Route::middleware('auth')->group(function () {
+    Route::post('/open-play/{session}/join', [OpenPlayController::class, 'join'])->name('open-play.join');
+    Route::post('/open-play/entries/{entry}/payment', [OpenPlayController::class, 'submitPayment'])->name('open-play.payment');
+    Route::post('/open-play/entries/{entry}/queue', [OpenPlayController::class, 'enterQueue'])->name('open-play.queue');
+    Route::post('/open-play/entries/{entry}/step-out', [OpenPlayController::class, 'stepOut'])->name('open-play.step-out');
+    Route::post('/open-play/entries/{entry}/leave', [OpenPlayController::class, 'leave'])->name('open-play.leave');
+});
