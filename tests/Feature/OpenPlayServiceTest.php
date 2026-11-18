@@ -47,7 +47,7 @@ class OpenPlayServiceTest extends TestCase
     }
 
     // A session tomorrow 6pm to 8pm on our court, unless overridden.
-    public function session(array $overrides = []): OpenPlaySession
+    protected function makeSession(array $overrides = []): OpenPlaySession
     {
         return OpenPlaySession::factory()->create(array_merge(['court_id' => $this->court->id], $overrides));
     }
@@ -72,7 +72,7 @@ class OpenPlayServiceTest extends TestCase
 
     public function test_a_booking_cannot_be_made_over_a_session(): void
     {
-        $this->session(); // 6pm to 8pm
+        $this->makeSession(); // 6pm to 8pm
 
         $availability = app(AvailabilityService::class);
 
@@ -82,7 +82,7 @@ class OpenPlayServiceTest extends TestCase
 
     public function test_the_day_grid_marks_open_play_hours(): void
     {
-        $this->session();
+        $this->makeSession();
 
         $grid = app(AvailabilityService::class)->dayGrid(Carbon::parse('2026-11-03'));
         $slots = collect($grid->first()['slots'])->keyBy('hour');
@@ -94,7 +94,7 @@ class OpenPlayServiceTest extends TestCase
 
     public function test_a_player_can_join_only_once(): void
     {
-        $session = $this->session();
+        $session = $this->makeSession();
         $user = User::factory()->create();
 
         $entry = $this->openPlay->join($session, $user, PaymentMethod::Cash);
@@ -109,7 +109,7 @@ class OpenPlayServiceTest extends TestCase
 
     public function test_a_full_session_turns_players_away(): void
     {
-        $session = $this->session(['max_players' => 4]);
+        $session = $this->makeSession(['max_players' => 4]);
 
         foreach (User::factory()->count(4)->create() as $user) {
             $this->openPlay->join($session, $user, PaymentMethod::Cash);
@@ -122,7 +122,7 @@ class OpenPlayServiceTest extends TestCase
 
     public function test_check_in_needs_a_live_session(): void
     {
-        $entry = $this->openPlay->join($this->session(), User::factory()->create(), PaymentMethod::Cash);
+        $entry = $this->openPlay->join($this->makeSession(), User::factory()->create(), PaymentMethod::Cash);
 
         $this->expectException(OpenPlayException::class);
 
@@ -131,7 +131,7 @@ class OpenPlayServiceTest extends TestCase
 
     public function test_checking_in_marks_paid_and_joins_the_queue(): void
     {
-        $session = $this->session(['status' => OpenPlaySessionStatus::Live]);
+        $session = $this->makeSession(['status' => OpenPlaySessionStatus::Live]);
         $entry = $this->openPlay->join($session, User::factory()->create(), PaymentMethod::Cash);
 
         $this->openPlay->checkIn($entry);
@@ -143,7 +143,7 @@ class OpenPlayServiceTest extends TestCase
 
     public function test_the_next_game_takes_the_four_longest_waiting_players(): void
     {
-        $session = $this->session(['status' => OpenPlaySessionStatus::Live]);
+        $session = $this->makeSession(['status' => OpenPlaySessionStatus::Live]);
         $entries = $this->fiveWaiting($session);
 
         $game = $this->openPlay->startNextGame($session);
@@ -156,7 +156,7 @@ class OpenPlayServiceTest extends TestCase
 
     public function test_a_game_needs_four_players(): void
     {
-        $session = $this->session(['status' => OpenPlaySessionStatus::Live]);
+        $session = $this->makeSession(['status' => OpenPlaySessionStatus::Live]);
         OpenPlayEntry::factory()->waiting()->count(3)->create(['open_play_session_id' => $session->id]);
 
         $this->expectException(OpenPlayException::class);
@@ -166,7 +166,7 @@ class OpenPlayServiceTest extends TestCase
 
     public function test_finished_players_go_to_the_back_of_the_queue(): void
     {
-        $session = $this->session(['status' => OpenPlaySessionStatus::Live]);
+        $session = $this->makeSession(['status' => OpenPlaySessionStatus::Live]);
         $entries = $this->fiveWaiting($session);
 
         $game = $this->openPlay->startNextGame($session);
@@ -185,7 +185,7 @@ class OpenPlayServiceTest extends TestCase
 
     public function test_ended_sessions_are_closed_automatically(): void
     {
-        $session = $this->session([
+        $session = $this->makeSession([
             'status' => OpenPlaySessionStatus::Live,
             'starts_at' => now()->subHours(3)->startOfHour(),
             'ends_at' => now()->subHour()->startOfHour(),
